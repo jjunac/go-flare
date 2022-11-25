@@ -7,7 +7,6 @@ import (
 	"log"
 	"math/rand"
 	"neural-network/neuralnet"
-	"neural-network/utils"
 	"os"
 	"strconv"
 	"time"
@@ -30,7 +29,7 @@ func main() {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
 
-	f, err := os.Open("results_euro2016.csv")
+	f, err := os.Open(".datasets/results_euro2016.csv")
 	check(err)
 
 	matches := make([][]string, 0)
@@ -94,40 +93,39 @@ func main() {
 	logrus.Infof("%+v\n", dataset)
 
 	rand.Seed(time.Now().UnixNano())
-	network := neuralnet.NewNetwork(2, 20, 10, 3)
 
-	evaluateWins := func(printMatchGuesses bool) {
-		nbRightGuess := 0
-		for i := range dataset {
-			res := network.Evaluate(dataset[i].Inputs)
-			idx := utils.MaxFloat64Index(res)
-			answer := "--- WRONG ---"
-			if dataset[i].Outputs[idx] > 0.9 {
-				answer = "+++ RIGHT +++"
-				nbRightGuess++
-			}
-			if printMatchGuesses {
-				logrus.Infof("%s - %s (%s-%s): %s %+v\n",
-					matches[i][iHomeTeam],
-					matches[i][iAwayTeam],
-					matches[i][iHomeScore],
-					matches[i][iAwayScore],
-					answer,
-					res)
-			}
+	network := neuralnet.NewNetwork(
+		[]neuralnet.Layer{
+			neuralnet.NewLayer(2, 10, neuralnet.Sigmoid),
+			neuralnet.NewLayer(10, 3, neuralnet.Sigmoid),
+		},
+		neuralnet.MSELoss,
+	)
+
+	trainData, testData := neuralnet.RandomSplit2(dataset, 7, 3)
+
+
+	testNetwork := func(data []neuralnet.DataPoint) {
+		total := len(data)
+		actual := make([][]float64, total)
+		predictions := make([][]float64, total)
+
+		for i := range data {
+			actual[i] = data[i].Outputs
+			predictions[i] = network.Evaluate(data[i].Inputs)
 		}
 
-		logrus.Infof("##### Final score: %d/%d [%d%%] #####", nbRightGuess, len(dataset), 100*nbRightGuess/len(dataset))
+		logrus.Infoln(neuralnet.NewConfusionMatrix([]string{"Home win", "tie", "Away win"}, actual, predictions))
 	}
 
+
+	optimizer := neuralnet.NewOptimizer(&network, 0.00001, 0)
 	for i := 0; ; i++ {
-		// logrus.Infof("[%d] %+v\n", i, dataset[:1])
-		network.Learn(dataset, 0.1)
-		if i%1000 == 0 {
-			logrus.Infof("[%d] %+v %+v\n", i, network.Evaluate(dataset[0].Inputs), network.Loss(dataset[0]))
-			logrus.Infof("[%d] %f\n", i, network.AvgLoss(dataset))
-			// logrus.Debugf("[%d] %#v\n", i, network)
-			evaluateWins(false)
+		network.Learn(*neuralnet.NewDataLoader(trainData, 10, true), optimizer)
+		if i%100000 == 0 {
+			logrus.Infof("[%d] %f\n", i, network.AvgLoss(trainData))
+			logrus.Infof("[####] %+v %+v\n", network.Evaluate(trainData[0].Inputs), network.Loss(trainData[0]))
+			testNetwork(testData)
 		}
 	}
 

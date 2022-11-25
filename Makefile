@@ -14,6 +14,13 @@ rund: ## Run the binary with debug logs
 	go run ./cmd/football.go -debug
 
 
+## Profiling of typical usecases:
+
+prof-learn: ## Profile BenchmarkNetworkLearn benchmark
+	go test -benchmem -run=^$$ -bench ^BenchmarkNetworkLearn$$ neural-network/neuralnet -cpuprofile learn.prof
+	go tool pprof -web learn.prof
+
+
 ## Continuous integration:
 
 test: ## Run go test on all modules
