@@ -66,6 +66,10 @@ func NewDataLoader(dataset []DataPoint, batchSize int, shuffle bool) *DataLoader
 	return dl
 }
 
+func (dl *DataLoader) Len() int {
+	return len(dl.dataset)
+}
+
 func (dl *DataLoader) NextBatch() (batch []DataPoint, end bool) {
 	lowerBound := dl.curr
 	upperBound := dl.curr + dl.batchSize

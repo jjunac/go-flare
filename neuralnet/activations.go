@@ -1,14 +1,23 @@
 package neuralnet
 
-import "math"
+import (
+	"encoding/json"
+	"math"
+)
 
 type ActivationFunc struct {
+	Name  string
 	Func  func(float64) float64
 	Prime func(float64) float64
 }
 
+func (f *ActivationFunc) MarshalJSON() ([]byte, error) {
+	return json.Marshal(f.Name)
+}
+
 var (
 	Sigmoid = ActivationFunc{
+		"Sigmoid",
 		func(f float64) float64 {
 			return 1 / (1 + math.Exp(-f))
 		},

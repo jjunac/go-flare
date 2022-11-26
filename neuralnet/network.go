@@ -6,8 +6,8 @@ type DataPoint struct {
 }
 
 type Network struct {
-	layers []Layer
-	loss   LossFunc
+	Layers []Layer
+	LossFn LossFunc
 }
 
 func NewNetwork(layers []Layer, lossFunc LossFunc) Network {
@@ -18,23 +18,22 @@ func NewNetwork(layers []Layer, lossFunc LossFunc) Network {
 }
 
 func (n *Network) Evaluate(inputs []float64) []float64 {
-	for i := range n.layers {
-		inputs = n.layers[i].Evaluate(inputs)
+	for i := range n.Layers {
+		inputs = n.Layers[i].Evaluate(inputs)
 	}
 	return inputs
 }
 
-func (n *Network) Loss(data DataPoint) (loss float64) {
-	outputs := n.Evaluate(data.Inputs)
-	for i := range outputs {
-		loss += n.loss.Func(outputs[i], data.Outputs[i])
+func (n *Network) Loss(predicted []float64, actual []float64) (loss float64) {
+	for i := range predicted {
+		loss += n.LossFn.Func(predicted[i], actual[i])
 	}
 	return
 }
 
 func (n *Network) AvgLoss(data []DataPoint) (loss float64) {
 	for i := range data {
-		loss += n.Loss(data[i])
+		loss += n.Loss(n.Evaluate(data[i].Inputs), data[i].Outputs)
 	}
 	loss /= float64(len(data))
 	return
@@ -46,10 +45,10 @@ type NetworkLearnData struct {
 	Actual    []float64
 }
 
-func (n *Network) Learn(loader DataLoader, optimizer *Optimizer) {
+func (n *Network) Learn(loader DataLoader, optimizer *Optimizer) (runningLoss float64) {
 
 	nld := NetworkLearnData{
-		LayerData: make([]LayerLearnData, len(n.layers)),
+		LayerData: make([]LayerLearnData, len(n.Layers)),
 	}
 
 	end := false
@@ -62,10 +61,11 @@ func (n *Network) Learn(loader DataLoader, optimizer *Optimizer) {
 
 			// --- Evaluation
 			outputs := data.Inputs
-			for i := range n.layers {
+			for i := range n.Layers {
 				nld.LayerData[i].Inputs = outputs
-				outputs = n.layers[i].Learn(outputs, &nld.LayerData[i])
+				outputs = n.Layers[i].Learn(outputs, &nld.LayerData[i])
 			}
+			runningLoss += n.Loss(outputs, data.Outputs)
 
 			// --- Back-propagation
 			nld.Predicted = outputs
@@ -76,4 +76,12 @@ func (n *Network) Learn(loader DataLoader, optimizer *Optimizer) {
 		optimizer.Step()
 	}
 
+	runningLoss /= float64(loader.batchSize)
+	return
+}
+
+func (n *Network) Reset() {
+	for i := range n.Layers {
+		n.Layers[i].Reset()
+	}
 }

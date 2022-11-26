@@ -104,7 +104,6 @@ func main() {
 
 	trainData, testData := neuralnet.RandomSplit2(dataset, 7, 3)
 
-
 	testNetwork := func(data []neuralnet.DataPoint) {
 		total := len(data)
 		actual := make([][]float64, total)
@@ -120,11 +119,14 @@ func main() {
 
 
 	optimizer := neuralnet.NewOptimizer(&network, 0.00001, 0)
+
+	// debugSvr := tools.NewDebugServer(&network, testData, *neuralnet.NewDataLoader(trainData, 10, true), optimizer)
+	// debugSvr.Run("localhost:5000")
+
 	for i := 0; ; i++ {
 		network.Learn(*neuralnet.NewDataLoader(trainData, 10, true), optimizer)
 		if i%100000 == 0 {
 			logrus.Infof("[%d] %f\n", i, network.AvgLoss(trainData))
-			logrus.Infof("[####] %+v %+v\n", network.Evaluate(trainData[0].Inputs), network.Loss(trainData[0]))
 			testNetwork(testData)
 		}
 	}

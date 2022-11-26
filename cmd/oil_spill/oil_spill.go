@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"neural-network/neuralnet"
+	"neural-network/tools"
 	"os"
 	"strconv"
 	"time"
@@ -29,7 +30,7 @@ func main() {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
 
-	f, err := os.Open("oil_spill.csv")
+	f, err := os.Open(".datasets/oil_spill.csv")
 	check(err)
 	r := csv.NewReader(f)
 
@@ -76,34 +77,39 @@ func main() {
 		neuralnet.MSELoss,
 	)
 
-	trainData, _ := neuralnet.RandomSplit2(dataset, 7, 3)
+	trainData, testData := neuralnet.RandomSplit2(dataset, 7, 3)
 
-	testNetwork := func() {
-
-		total := len(trainData)
+	testNetwork := func(data []neuralnet.DataPoint) {
+		total := len(data)
 		actual := make([][]float64, total)
 		predictions := make([][]float64, total)
 
-		for i := range trainData {
-			actual[i] = trainData[i].Outputs
-			predictions[i] = network.Evaluate(trainData[i].Inputs)
+		for i := range data {
+			actual[i] = data[i].Outputs
+			predictions[i] = network.Evaluate(data[i].Inputs)
 		}
 
 		logrus.Infoln(neuralnet.NewConfusionMatrix([]string{"class0", "class1"}, actual, predictions))
 	}
 
-	logrus.Infof("[####] avg loss = %f\n", network.AvgLoss(trainData))
-	logrus.Infof("[####] %+v %+v\n", network.Evaluate(trainData[0].Inputs), network.Loss(trainData[0]))
-	testNetwork()
+	// logrus.Infof("[####] avg loss = %f\n", network.AvgLoss(trainData))
+	// logrus.Infof("[####] %+v %+v\n", network.Evaluate(trainData[0].Inputs), network.Loss(trainData[0]))
+	testNetwork(trainData)
 
-	optimizer := neuralnet.NewOptimizer(&network, 0.0001, 0)
-	for i := 0; i < 1; i++ {
-		network.Learn(*neuralnet.NewDataLoader(trainData, 100, true), optimizer)
-		if i%500 == 0 {
-			logrus.Infof("[%4d] avg loss = %f\n", i, network.AvgLoss(trainData))
-			logrus.Infof("[####] %+v %+v\n", network.Evaluate(trainData[0].Inputs), network.Loss(trainData[0]))
-			testNetwork()
-		}
-	}
+	optimizer := neuralnet.NewOptimizer(&network, 10, 0)
+
+	debugSvr := tools.NewDebugServer(&network, testData, *neuralnet.NewDataLoader(trainData, 100, true), optimizer)
+	debugSvr.Run("localhost:5000")
+
+	// for i := 0; i < 100000000; i++ {
+	// 	network.Learn(*neuralnet.NewDataLoader(trainData, 100, true), optimizer)
+	// 	if i%500 == 0 {
+	// 		logrus.Infof("[%4d] Train data loss = %f\n", i, network.AvgLoss(trainData))
+	// 		logrus.Infof("[%4d] Test data loss = %f\n", i, network.AvgLoss(testData))
+	// 		output0 := network.Evaluate(trainData[0].Inputs)
+	// 		logrus.Infof("[%4d] %+v %+v\n", i, output0, network.Loss(output0, trainData[0].Outputs))
+	// 		testNetwork(trainData)
+	// 	}
+	// }
 
 }

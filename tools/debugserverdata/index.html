@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.1/css/bootstrap.min.css"
+        integrity="sha512-Ez0cGzNzHR1tYAv56860NLspgUGuQw16GiOOp/I2LuTmpSK9xDXlgJz3XN4cnpXWDmkNBKXR/VDMTCnAaEooxA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Font awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css"
+        integrity="sha512-1sCRPdkRXhBV2PBLUdRb4tMg1w2YPf37qatUFeS7zlBy7jJI8Lf4VHwWfZZfpXtYSLy85pkm9GaYVYMfw5BC1A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <title>NN Debug Server</title>
+
+    <style>
+        .container-fluid {
+            width: 100vw;
+            height: 100vh;
+            flex-direction: column;
+            display: flex;
+            overflow: hidden;
+            padding: 0;
+            margin: 0;
+        }
+
+        #control-bar {
+            width: 100vw;
+            padding: 10px 30px;
+            flex-shrink: 0;
+            background-color: var(--bs-gray-dark);
+            color: var(--bs-light);
+            flex-direction: row;
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        #control-buttons .btn {
+            width: 50px;
+            height: 45px;
+        }
+
+        #control-inputs .input-group * {
+            color: var(--bs-light) !important;
+            background-color: var(--bs-gray-dark) !important;
+            border-color: var(--bs-gray) !important;
+        }
+
+        #speed-range {
+            width: 150px !important;
+            height: auto;
+        }
+
+        #cy {
+            height: 100%;
+            width: 100vw;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div id="control-bar">
+            <div id="control-buttons" class="btn-group" role="group">
+                <button id="reset-btn" type="button" class="btn btn-danger"><i class="fa-solid fa-rotate-left"></i></button>
+                <button id="learn-btn" type="button" class="btn btn-success"></button>
+                <button id="step-btn" type="button" class="btn btn-secondary"><i class="fa-solid fa-forward-step"></i></button>
+            </div>
+            <div class="d-flex flex-column" style="width: 170px">
+                <span id="status-span"></span>
+                <span id="perf-span" class="overflow-hidden"></span>
+            </div>
+            <div class="d-flex flex-column" style="width: 90px">
+                <span>Epoch:</span>
+                <span id="epoch-span"></span>
+            </div>
+            <div id="control-inputs" style="width: 180px;">
+                <div class="input-group input-group-sm mb-1">
+                    <span class="input-group-text" id="batch-form-label">Batch size</span>
+                    <input type="text" class="form-control" id="batch-form-input" aria-label="Sizing example input" aria-describedby="batch-form-label">
+                </div>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text" id="lr-form-label">Learning rate</span>
+                    <input type="text" class="form-control" id="lr-form-input" aria-label="Sizing example input" aria-describedby="lr-form-label">
+                </div>
+            </div>
+            <div class="d-flex flex-column">
+                <label id="speed-label"></label>
+                <input id="speed-range" type="range" class="form-range" min="0" max="16" value="1">
+            </div>
+            <div class="d-flex flex-column">
+                <span id="train-loss-span" style="color: var(--bs-cyan)"></span>
+                <span id="test-loss-span" style="color: var(--bs-yellow)"></span>
+            </div>
+        </div>
+        <div id="cy" />
+    </div>
+
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+        integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.5/umd/popper.min.js"
+        integrity="sha512-8cU710tp3iH9RniUh6fq5zJsGnjLzOWLWdZqBMLtqaoZUA6AWIE34lwMB3ipUNiTBP5jEZKY95SfbNnQ8cCKvA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.0/js/bootstrap.min.js"
+        integrity="sha512-8Y8eGK92dzouwpROIppwr+0kPauu0qqtnzZZNEF8Pat5tuRNJxJXCkbQfJ0HlUG3y1HB3z18CSKmUo7i2zcPpg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Cytoscape.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.23.0/cytoscape.min.js"
+        integrity="sha512-gEWKnYYa1/1c3jOuT9PR7NxiVI1bwn02DeJGsl+lMVQ1fWMNvtjkjxIApTdbJ/wcDjQmbf+McWahXwipdC9bGA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <script type="text/javascript">
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// HTML control code
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        const WH_RATIO = window.innerWidth / window.innerHeight;
+        let maxEpochPerSecond = 0;
+
+        $("#speed-range").on('input change', e => {
+            maxEpochPerSecond = Math.pow(2, e.target.value);
+            $('#speed-label').text(`Speed: x${maxEpochPerSecond}`);
+        });
+        $("#speed-range").val(0).change();
+
+        function setNbEpochs(epochs) {
+            const padding = 9;
+            epochStr = "" + epochs;
+            if (epochStr.length < padding) {
+                epochStr = "0".repeat(padding - epochStr.length) + epochStr
+            }
+            epochStr = epochStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+            $("#epoch-span").text(epochStr);
+        }
+        setNbEpochs(0);
+
+        function setLosses(trainLoss, testLoss) {
+            $("#train-loss-span").text(`Training loss: ${trainLoss.toFixed(3)}`);
+            $("#test-loss-span").text(`Test loss: ${testLoss.toFixed(3)}`);
+        }
+        setLosses(0, 0);
+
+        function setStatus(status) {
+            $("#status-span").text(`Status: ${status}`);
+        }
+
+        lastPerfKpis = [];
+        function setPerf(learnTime) {
+            let perfMA = 0
+            if (learnTime > 0) {
+                let msPerEpoch = learnTime/maxEpochPerSecond;
+                let epochPerSecond = 1000/msPerEpoch;
+                lastPerfKpis.push(epochPerSecond);
+                if (lastPerfKpis.length > 5) {
+                    lastPerfKpis.shift();
+                }
+                perfMA = lastPerfKpis.reduce((a, b) => a + b, 0) / lastPerfKpis.length;
+            }
+            let perfStr = `${perfMA >= 10 ? perfMA.toFixed(0) : perfMA.toFixed(3)} e/s`;
+            if (perfMA >= maxEpochPerSecond) {
+                perfStr += ' (throttling)';
+            }
+            $("#perf-span").text(perfStr);
+        }
+        setPerf(0);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// Network display
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        function getNodeId(layer, node) { return `node-${layer}-${node}`; };
+        function getEdgeId(fromLayer, fromNode, toLayer, toNode) { return `edge-${fromLayer}-${fromNode}-${toLayer}-${toNode}`; };
+
+        function contructGraph(nn) {
+            elements = []
+            for (let i = 0; i < nn.Layers[0].NodesIn; i++) {
+                elements.push({
+                    group: 'nodes',
+                    data: {
+                        layer: 0,
+                        id: getNodeId(0, i),
+                    }
+                });
+            }
+            nn.Layers.forEach((l, i) => {
+                i++; // Compensate for the input layer
+                l.Biases.forEach((b, j) => {
+                    elements.push({
+                        group: 'nodes',
+                        data: {
+                            layer: i,
+                            id: getNodeId(i, j),
+                            bias: b
+                        }
+                    });
+                });
+                l.Weights.forEach((_, nodeIn) => {
+                    l.Weights[nodeIn].forEach((w, nodeOut) => {
+                        elements.push({
+                            group: 'edges',
+                            data: {
+                                id: getEdgeId(i - 1, nodeIn, i, nodeOut),
+                                source: getNodeId(i - 1, nodeIn),
+                                target: getNodeId(i, nodeOut),
+                                weight: w
+                            }
+                        });
+                    });
+                });
+            });
+            var cy = cytoscape({
+                container: document.getElementById('cy'), // container to render in
+                elements: elements,
+                style: [ // the stylesheet for the graph
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': '#666',
+                            'label': e => e.data('bias')?.toPrecision(3) || "",
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 3,
+                            'line-color': '#ccc',
+                            'target-arrow-color': '#ccc',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'label': e => e.data('weight').toPrecision(3) || "",
+                        }
+                    },
+                    {
+                        selector: "edge[label]",
+                        css: {
+                            "label": "data(label)",
+                            "text-rotation": "autorotate",
+                            "text-margin-x": "data(xalign)",
+                            "text-margin-y": "data(yalign)"
+                        }
+                    },
+                ],
+                layout: {
+                    name: 'breadthfirst',
+                    directed: true,
+                    transform: (node, pos) => { return { x: pos.y * WH_RATIO, y: pos.x / WH_RATIO }; },
+                }
+            });
+        }
+
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// Controls + server interactions
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        function refreshNetwork() {
+            $.get("/api/network", res => {
+                contructGraph(res);
+            });
+        }
+
+        function learnOnce() {
+            return $.post("/api/learn",
+                JSON.stringify({
+                    Epoch: maxEpochPerSecond,
+                    BatchSize: parseInt($("#batch-form-input").val()),
+                    LearnRate: parseFloat($("#lr-form-input").val()),
+                }),
+                res => {
+                    console.log(res);
+                    setNbEpochs(res.Epoch);
+                    setLosses(res.TrainLoss, res.TestLoss)
+                    refreshNetwork();
+                });
+        }
+
+        var isLearning = false;
+        function learn() {
+            let startTime = new Date().getTime();
+            learnOnce().done(() => {
+                let learnTime = new Date().getTime() - startTime;
+                setPerf(learnTime);
+                setTimeout(() => {
+                    if (isLearning) {
+                        learn();
+                    }
+                }, 1000 - learnTime);
+            });
+            
+        }
+
+        refreshNetwork();
+
+        function play(e) {
+            if (isLearning) {
+                throw 'Cannot play: Already learning !';
+            }
+            isLearning = true;
+            setStatus("Running");
+            $("#learn-btn").html(PAUSE_ICON);
+            learn();
+        }
+
+        function pause(e) {
+            setStatus("Paused");
+            isLearning = false;
+            setPerf(0);
+            $("#learn-btn").html(PLAY_ICON);
+        }
+
+        const PLAY_ICON = `<i class="fa-solid fa-play"></i>`
+        const PAUSE_ICON = `<i class="fa-solid fa-pause"></i>`;
+        pause();
+        $("#learn-btn").on('click', e => isLearning ? pause() : play());
+        $("#step-btn").on('click', e => {
+            if (!isLearning) {
+                learnOnce();
+            }
+        });
+        $("#reset-btn").on('click', e => {
+            pause();
+            return $.post("/api/reset",
+                JSON.stringify({}),
+                res => {
+                    console.log(res);
+                    setNbEpochs(0);
+                    setLosses(0, 0);
+                    refreshNetwork();
+                });
+            });
+
+    </script>
+
+</body>
+
+</html>
