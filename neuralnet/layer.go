@@ -14,12 +14,6 @@ type Layer struct {
 	Activation ActivationFunc
 }
 
-type LayerLearnData struct {
-	Inputs         []float64
-	WeightedValues []float64
-	LossDerivative []float64
-}
-
 func NewLayer(nodesIn int, nodesOut int, activation ActivationFunc) Layer {
 	l := Layer{
 		nodesIn,
@@ -32,6 +26,19 @@ func NewLayer(nodesIn int, nodesOut int, activation ActivationFunc) Layer {
 	return l
 }
 
+// Returns a new layer with the same param as the other, without sharing any object, even slices.
+// Useful to avoid sharing when working in parallel
+func CopyLayer(src *Layer) Layer {
+	dst := Layer{
+		src.NodesIn,
+		src.NodesOut,
+		utils.Copy2dSlice(src.Weights),
+		utils.CopySlice(src.Biases),
+		src.Activation,
+	}
+	return dst
+}
+
 func (l *Layer) Evaluate(inputs []float64) (outputs []float64) {
 	outputs = make([]float64, l.NodesOut)
 	for out := range outputs {
@@ -39,12 +46,12 @@ func (l *Layer) Evaluate(inputs []float64) (outputs []float64) {
 		for in := range l.Weights {
 			value += inputs[in] * l.Weights[in][out]
 		}
-		outputs[out] = l.Activation.Func(value)
+		outputs[out] = l.Activation.F(value)
 	}
 	return
 }
 
-func (l *Layer) Learn(inputs []float64, learnData *LayerLearnData) (outputs []float64) {
+func (l *Layer) EvaluateWithLearnData(inputs []float64, learnData *LayerLearnData) (outputs []float64) {
 	learnData.Inputs = inputs
 	learnData.WeightedValues = make([]float64, l.NodesOut)
 
@@ -55,7 +62,7 @@ func (l *Layer) Learn(inputs []float64, learnData *LayerLearnData) (outputs []fl
 			value += inputs[in] * l.Weights[in][out]
 		}
 		learnData.WeightedValues[out] = value
-		outputs[out] = l.Activation.Func(value)
+		outputs[out] = l.Activation.F(value)
 	}
 	return
 }

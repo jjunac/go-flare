@@ -52,7 +52,6 @@ type DataLoader struct {
 	dataset   []DataPoint
 	batchSize int
 	shuffle   bool
-	curr      int
 }
 
 func NewDataLoader(dataset []DataPoint, batchSize int, shuffle bool) *DataLoader {
@@ -60,9 +59,7 @@ func NewDataLoader(dataset []DataPoint, batchSize int, shuffle bool) *DataLoader
 		dataset,
 		batchSize,
 		shuffle,
-		0,
 	}
-	dl.Reset()
 	return dl
 }
 
@@ -70,25 +67,30 @@ func (dl *DataLoader) Len() int {
 	return len(dl.dataset)
 }
 
-func (dl *DataLoader) NextBatch() (batch []DataPoint, end bool) {
-	lowerBound := dl.curr
-	upperBound := dl.curr + dl.batchSize
-	if upperBound > len(dl.dataset) {
-		upperBound = len(dl.dataset)
-		end = true
-	}
-	dl.curr = upperBound
-	batch = dl.dataset[lowerBound:upperBound]
-	return
-}
-
-func (dl *DataLoader) Reset() {
-	dl.curr = 0
+func (dl *DataLoader) Batches() [][]DataPoint {
+	dataset := dl.dataset
 	if dl.shuffle {
-		rand.Shuffle(len(dl.dataset), func(i, j int) {
-			tmp := dl.dataset[i]
-			dl.dataset[i] = dl.dataset[j]
-			dl.dataset[j] = tmp
+		dataset = make([]DataPoint, len(dl.dataset))
+		copy(dataset, dl.dataset)
+		rand.Shuffle(len(dataset), func(i, j int) {
+			tmp := dataset[i]
+			dataset[i] = dataset[j]
+			dataset[j] = tmp
 		})
 	}
+
+	batches := make([][]DataPoint, 0, (len(dataset)+dl.batchSize-1)/dl.batchSize)
+	lowerBound := 0
+	end := false
+	for !end {
+		upperBound := lowerBound + dl.batchSize
+		if upperBound > len(dataset) {
+			upperBound = len(dataset)
+			end = true
+		}
+		batches = append(batches, dataset[lowerBound:upperBound])
+		lowerBound = upperBound
+	}
+	return batches
 }
+

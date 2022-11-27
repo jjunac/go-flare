@@ -40,3 +40,18 @@ func MakeSlice2d[T any](rows int, cols int) [][]T {
 	return res
 }
 
+func CopySlice[T any](src []T) []T {
+	dst := make([]T, len(src))
+	copy(dst, src)
+	return dst
+}
+
+func Copy2dSlice[T any](src [][]T) [][]T {
+	dst := make([][]T, len(src))
+	for i := range dst {
+		dst[i] = make([]T, len(src[i]))
+		copy(dst[i], src[i])
+	}
+	return dst
+}
+

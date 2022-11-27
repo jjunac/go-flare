@@ -18,7 +18,7 @@ rund: ## Run the binary with debug logs
 
 prof-learn: ## Profile BenchmarkNetworkLearn benchmark
 	go test -benchmem -run=^$$ -bench ^BenchmarkNetworkLearn$$ neural-network/neuralnet -cpuprofile learn.prof
-	go tool pprof -web learn.prof
+	go tool pprof -http=: learn.prof
 
 
 ## Continuous integration:

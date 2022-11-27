@@ -6,9 +6,9 @@ import (
 )
 
 type ActivationFunc struct {
-	Name  string
-	Func  func(float64) float64
-	Prime func(float64) float64
+	Name   string
+	F      func(float64) float64
+	FPrime func(float64) float64
 }
 
 func (f *ActivationFunc) MarshalJSON() ([]byte, error) {

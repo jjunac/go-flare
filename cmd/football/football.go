@@ -99,7 +99,6 @@ func main() {
 			neuralnet.NewLayer(2, 10, neuralnet.Sigmoid),
 			neuralnet.NewLayer(10, 3, neuralnet.Sigmoid),
 		},
-		neuralnet.MSELoss,
 	)
 
 	trainData, testData := neuralnet.RandomSplit2(dataset, 7, 3)
@@ -118,15 +117,18 @@ func main() {
 	}
 
 
-	optimizer := neuralnet.NewOptimizer(&network, 0.00001, 0)
+	optimizer := neuralnet.NewOptimizer(&network, neuralnet.MSELoss, 0.01, 0)
+	trainer := neuralnet.NetworkTrainer{}
+	loader := neuralnet.NewDataLoader(trainData, 10, true)
 
 	// debugSvr := tools.NewDebugServer(&network, testData, *neuralnet.NewDataLoader(trainData, 10, true), optimizer)
 	// debugSvr.Run("localhost:5000")
 
 	for i := 0; ; i++ {
-		network.Learn(*neuralnet.NewDataLoader(trainData, 10, true), optimizer)
-		if i%100000 == 0 {
-			logrus.Infof("[%d] %f\n", i, network.AvgLoss(trainData))
+		runningLoss := trainer.Train(&network, loader, optimizer)
+		if i%5000 == 0 {
+			logrus.Infof("[%4d] Train data loss = %f\n", i, runningLoss)
+			testNetwork(trainData)
 			testNetwork(testData)
 		}
 	}

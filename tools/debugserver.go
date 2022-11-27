@@ -16,8 +16,6 @@ type DebugServer struct {
 	nn        *neuralnet.Network
 	trainData []neuralnet.DataPoint
 	testData  []neuralnet.DataPoint
-	// trainLoader neuralnet.DataLoader
-	// optimizer   *neuralnet.Optimizer
 	epoch int
 }
 
@@ -72,16 +70,16 @@ func (s *DebugServer) handleApiLearn(w http.ResponseWriter, r *http.Request) {
 	s.checkNoErr(w, err)
 
 	logrus.Infof("Running training for %d epochs", query.Epoch)
+	trainer := neuralnet.NetworkTrainer{}
+	loader := neuralnet.NewDataLoader(s.trainData, query.BatchSize, true)
+	optimizer := neuralnet.NewOptimizer(s.nn, neuralnet.MSELoss, query.LearnRate, 0)
 	var trainLoss float64
 	for i := 0; i < query.Epoch; i++ {
 		s.epoch++
-		trainLoss = s.nn.Learn(
-			*neuralnet.NewDataLoader(s.trainData, query.BatchSize, true),
-			neuralnet.NewOptimizer(s.nn, query.LearnRate, 0),
-		)
+		trainLoss = trainer.Train(s.nn, loader, optimizer)
 	}
 
-	testLoss := s.nn.AvgLoss(s.testData)
+	testLoss := s.nn.AvgLoss(neuralnet.MSELoss, s.testData)
 	logrus.Infof("Test loss: %f", testLoss)
 
 	err = s.replyJSON(w, 200, H{

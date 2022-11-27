@@ -7,7 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"neural-network/neuralnet"
-	"neural-network/tools"
+	_ "neural-network/tools"
 	"os"
 	"strconv"
 	"time"
@@ -74,7 +74,6 @@ func main() {
 		[]neuralnet.Layer{
 			neuralnet.NewLayer(49, 2, neuralnet.Sigmoid),
 		},
-		neuralnet.MSELoss,
 	)
 
 	trainData, testData := neuralnet.RandomSplit2(dataset, 7, 3)
@@ -92,24 +91,22 @@ func main() {
 		logrus.Infoln(neuralnet.NewConfusionMatrix([]string{"class0", "class1"}, actual, predictions))
 	}
 
-	// logrus.Infof("[####] avg loss = %f\n", network.AvgLoss(trainData))
-	// logrus.Infof("[####] %+v %+v\n", network.Evaluate(trainData[0].Inputs), network.Loss(trainData[0]))
 	testNetwork(trainData)
+	optimizer := neuralnet.NewOptimizer(&network, neuralnet.MSELoss, 0.1, 0)
 
-	optimizer := neuralnet.NewOptimizer(&network, 10, 0)
+	// debugSvr := tools.NewDebugServer(&network, testData, *neuralnet.NewDataLoader(trainData, 100, true), optimizer)
+	// debugSvr.Run("localhost:5000")
 
-	debugSvr := tools.NewDebugServer(&network, testData, *neuralnet.NewDataLoader(trainData, 100, true), optimizer)
-	debugSvr.Run("localhost:5000")
-
-	// for i := 0; i < 100000000; i++ {
-	// 	network.Learn(*neuralnet.NewDataLoader(trainData, 100, true), optimizer)
-	// 	if i%500 == 0 {
-	// 		logrus.Infof("[%4d] Train data loss = %f\n", i, network.AvgLoss(trainData))
-	// 		logrus.Infof("[%4d] Test data loss = %f\n", i, network.AvgLoss(testData))
-	// 		output0 := network.Evaluate(trainData[0].Inputs)
-	// 		logrus.Infof("[%4d] %+v %+v\n", i, output0, network.Loss(output0, trainData[0].Outputs))
-	// 		testNetwork(trainData)
-	// 	}
-	// }
+	trainer := neuralnet.NetworkTrainer{}
+	loader := *neuralnet.NewDataLoader(trainData, 100, true)
+	for i := 0; i < 100000000; i++ {
+		runningLoss := trainer.Train(&network, &loader, optimizer)
+		// network.Learn(, optimizer)
+		if i%500 == 0 {
+			logrus.Infof("[%4d] Train data loss = %f\n", i, runningLoss)
+			testNetwork(trainData)
+			testNetwork(testData)
+		}
+	}
 
 }
