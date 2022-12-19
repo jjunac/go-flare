@@ -1,8 +1,9 @@
-package neuralnet
+package goflare
 
 import (
-	"neural-network/utils"
 	"sync"
+
+	"github.com/jjunac/goflare/utils"
 
 	"github.com/sirupsen/logrus"
 )

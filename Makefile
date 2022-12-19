@@ -17,7 +17,7 @@ rund: ## Run the binary with debug logs
 ## Profiling of typical usecases:
 
 prof-learn: ## Profile BenchmarkNetworkLearn benchmark
-	go test -benchmem -run=^$$ -bench ^BenchmarkNetworkLearn$$ neural-network/neuralnet -cpuprofile learn.prof
+	go test -benchmem -run=^$$ -bench ^BenchmarkNetworkLearn$$ goflare/goflare -cpuprofile learn.prof
 	go tool pprof -http=: learn.prof
 
 

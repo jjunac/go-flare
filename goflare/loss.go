@@ -1,10 +1,10 @@
-package neuralnet
+package goflare
 
 import "encoding/json"
 
 type LossFunc struct {
-	Name  string
-	F  func(predicted float64, actual float64) float64
+	Name   string
+	F      func(predicted float64, actual float64) float64
 	FPrime func(predicted float64, actual float64) float64
 }
 

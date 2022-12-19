@@ -1,8 +1,9 @@
-package neuralnet
+package goflare
 
 import (
 	"math/rand"
-	"neural-network/utils"
+
+	"github.com/jjunac/goflare/utils"
 )
 
 type Layer struct {

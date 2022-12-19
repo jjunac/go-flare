@@ -1,6 +1,6 @@
-package neuralnet
+package goflare
 
-import "neural-network/utils"
+import "github.com/jjunac/goflare/utils"
 
 type NetworkLearnData struct {
 	Predicted []float64
@@ -12,7 +12,7 @@ func NewNetworkLearnData(n *Network) NetworkLearnData {
 	return NetworkLearnData{
 		LayerData: utils.InitSlice(len(n.Layers), func(i int) LayerLearnData { return NewLayerLearnData(&n.Layers[i]) }),
 		Predicted: make([]float64, 0),
-		Actual: make([]float64, 0),
+		Actual:    make([]float64, 0),
 	}
 }
 
@@ -24,7 +24,7 @@ type LayerLearnData struct {
 
 func NewLayerLearnData(l *Layer) LayerLearnData {
 	return LayerLearnData{
-		Inputs: make([]float64, 0),
+		Inputs:         make([]float64, 0),
 		WeightedValues: make([]float64, 0),
 		LossDerivative: make([]float64, 0),
 	}

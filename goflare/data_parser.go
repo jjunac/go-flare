@@ -1,13 +1,13 @@
-package neuralnet
+package goflare
 
 import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"neural-network/utils"
 	"os"
-)
 
+	"github.com/jjunac/goflare/utils"
+)
 
 func CSVDataStream(path string) (*DataStream, error) {
 	f, err := os.Open(path)

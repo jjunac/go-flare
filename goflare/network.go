@@ -1,7 +1,7 @@
-package neuralnet
+package goflare
 
 import (
-	"neural-network/utils"
+	"github.com/jjunac/goflare/utils"
 )
 
 type Network struct {
@@ -44,7 +44,6 @@ func (n *Network) EvaluateWithLearnData(inputs []float64, nld *NetworkLearnData)
 	}
 	return inputs
 }
-
 
 func (n *Network) Reset() {
 	for i := range n.Layers {

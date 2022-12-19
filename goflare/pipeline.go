@@ -1,15 +1,16 @@
-package neuralnet
+package goflare
 
 import (
 	"errors"
 	"fmt"
 	"math"
-	"neural-network/utils"
 	"strconv"
+
+	"github.com/jjunac/goflare/utils"
 )
 
 type ValueProcessor func(value any) (any, error)
-type PipelineProcessor func()ValueProcessor
+type PipelineProcessor func() ValueProcessor
 
 func TypedValueProcessor[T any](next func(value T) (any, error)) ValueProcessor {
 	return func(value any) (any, error) {
@@ -24,8 +25,8 @@ func TypedValueProcessor[T any](next func(value T) (any, error)) ValueProcessor 
 type DataPipelineOptions func(dp *DataPipeline)
 
 type DataPipeline struct {
-	targets utils.Set[int]
-	ignored []int
+	targets    utils.Set[int]
+	ignored    []int
 	processors [][]ValueProcessor
 }
 
@@ -94,7 +95,7 @@ func (dp *DataPipeline) AddTargetProcessor(pp PipelineProcessor) {
 	}
 }
 
-func PPStringValueMapper(dictionarySize  int) PipelineProcessor {
+func PPStringValueMapper(dictionarySize int) PipelineProcessor {
 	return func() ValueProcessor {
 		dict := make(map[string]float64, 0)
 		return TypedValueProcessor(func(v string) (any, error) {
@@ -136,4 +137,3 @@ func PPToFloats() PipelineProcessor {
 		}
 	}
 }
-

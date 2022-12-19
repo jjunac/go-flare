@@ -6,10 +6,11 @@ import (
 	"io"
 	"log"
 	"math/rand"
-	"neural-network/neuralnet"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/jjunac/goflare/goflare"
 
 	"github.com/sirupsen/logrus"
 )
@@ -72,7 +73,7 @@ func main() {
 		teamsValues[t] = float64(i) / float64(len(teamsIdx))
 	}
 
-	dataset := make([]neuralnet.DataPoint, 0, len(matches))
+	dataset := make([]goflare.DataPoint, 0, len(matches))
 	for _, m := range matches {
 		homeScore, _ := strconv.Atoi(m[iHomeScore])
 		awayScore, _ := strconv.Atoi(m[iAwayScore])
@@ -84,7 +85,7 @@ func main() {
 		} else {
 			output[2] = 1
 		}
-		dataset = append(dataset, neuralnet.DataPoint{
+		dataset = append(dataset, goflare.DataPoint{
 			Inputs:  []float64{teamsValues[m[iHomeTeam]], teamsValues[m[iAwayTeam]]},
 			Outputs: output,
 		})
@@ -94,16 +95,16 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 
-	network := neuralnet.NewNetwork(
-		[]neuralnet.Layer{
-			neuralnet.NewLayer(2, 10, neuralnet.Sigmoid),
-			neuralnet.NewLayer(10, 3, neuralnet.Sigmoid),
+	network := goflare.NewNetwork(
+		[]goflare.Layer{
+			goflare.NewLayer(2, 10, goflare.Sigmoid),
+			goflare.NewLayer(10, 3, goflare.Sigmoid),
 		},
 	)
 
-	trainData, testData := neuralnet.RandomSplit2(dataset, 7, 3)
+	trainData, testData := goflare.RandomSplit2(dataset, 7, 3)
 
-	testNetwork := func(data []neuralnet.DataPoint) {
+	testNetwork := func(data []goflare.DataPoint) {
 		total := len(data)
 		actual := make([][]float64, total)
 		predictions := make([][]float64, total)
@@ -113,15 +114,14 @@ func main() {
 			predictions[i] = network.Evaluate(data[i].Inputs)
 		}
 
-		logrus.Infoln(neuralnet.NewConfusionMatrix([]string{"Home win", "tie", "Away win"}, actual, predictions))
+		logrus.Infoln(goflare.NewConfusionMatrix([]string{"Home win", "tie", "Away win"}, actual, predictions))
 	}
 
+	optimizer := goflare.NewOptimizer(&network, goflare.MSELoss, 0.01, 0)
+	trainer := goflare.NetworkTrainer{}
+	loader := goflare.NewDataLoader(trainData, 10, true)
 
-	optimizer := neuralnet.NewOptimizer(&network, neuralnet.MSELoss, 0.01, 0)
-	trainer := neuralnet.NetworkTrainer{}
-	loader := neuralnet.NewDataLoader(trainData, 10, true)
-
-	// debugSvr := tools.NewDebugServer(&network, testData, *neuralnet.NewDataLoader(trainData, 10, true), optimizer)
+	// debugSvr := tools.NewDebugServer(&network, testData, *goflare.NewDataLoader(trainData, 10, true), optimizer)
 	// debugSvr.Run("localhost:5000")
 
 	for i := 0; ; i++ {

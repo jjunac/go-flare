@@ -1,13 +1,13 @@
-package matrix
+package goflare
 
 import (
 	"math/rand"
-	"neural-network/utils"
 	"testing"
+
+	"github.com/jjunac/goflare/utils"
 
 	"gonum.org/v1/gonum/mat"
 )
-
 
 func BenchmarkVecMatMult(b *testing.B) {
 	const (
@@ -37,7 +37,7 @@ func BenchmarkVecMatMult(b *testing.B) {
 
 	b.Run("Gonum", func(b *testing.B) {
 		v := mat.NewDense(1, nbRow, utils.InitSlice(nbRow, func(i int) float64 { return rand.Float64() }))
-		m := mat.NewDense(nbRow, nbCol, utils.InitSlice(nbRow * nbCol, func(i int) float64 { return rand.Float64() }))
+		m := mat.NewDense(nbRow, nbCol, utils.InitSlice(nbRow*nbCol, func(i int) float64 { return rand.Float64() }))
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -48,7 +48,7 @@ func BenchmarkVecMatMult(b *testing.B) {
 
 	b.Run("Dense slice", func(b *testing.B) {
 		vec := utils.InitSlice(nbRow, func(i int) float64 { return rand.Float64() })
-		mat := utils.InitSlice(nbRow * nbCol, func(i int) float64 { return rand.Float64() })
+		mat := utils.InitSlice(nbRow*nbCol, func(i int) float64 { return rand.Float64() })
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {

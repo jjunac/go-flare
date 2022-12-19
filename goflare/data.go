@@ -1,10 +1,11 @@
-package neuralnet
+package goflare
 
 import (
 	"fmt"
 	"math/rand"
-	"neural-network/utils"
 	"time"
+
+	"github.com/jjunac/goflare/utils"
 )
 
 type Dataset []DataPoint
@@ -35,7 +36,7 @@ func (ds *DataStream) ToDataset(targetCols []int) (dataset Dataset, err error) {
 	var inputCols []int
 	if len(ds.data) > 0 {
 		targets := utils.NewSetFromSlice(targetCols)
-		inputCols = make([]int, 0, len(ds.data[0]) - len(targets))
+		inputCols = make([]int, 0, len(ds.data[0])-len(targets))
 		for i := range ds.data[0] {
 			if !targets.Contains(i) {
 				inputCols = append(inputCols, i)

@@ -1,4 +1,4 @@
-package neuralnet
+package goflare
 
 import (
 	"math/rand"

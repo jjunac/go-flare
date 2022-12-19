@@ -1,11 +1,12 @@
-package neuralnet
+package goflare
 
 import (
 	"bufio"
 	"fmt"
-	"neural-network/utils"
 	"strconv"
 	"strings"
+
+	"github.com/jjunac/goflare/utils"
 
 	"github.com/olekukonko/tablewriter"
 )
@@ -19,9 +20,9 @@ type ConfusionMatrix struct {
 
 func NewConfusionMatrix(classes []string, actual [][]float64, predictions [][]float64) (cm *ConfusionMatrix) {
 	cm = &ConfusionMatrix{
-		classes: classes,
+		classes:         classes,
 		confusionMatrix: utils.InitSlice(len(classes), func(i int) []int { return make([]int, len(classes)) }),
-		total: len(actual),
+		total:           len(actual),
 	}
 	for i := range actual {
 		actual, _ := utils.Max(actual[i])

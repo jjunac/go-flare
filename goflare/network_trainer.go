@@ -1,9 +1,10 @@
-package neuralnet
+package goflare
 
 import (
-	"neural-network/utils"
 	"runtime"
 	"sync"
+
+	"github.com/jjunac/goflare/utils"
 )
 
 type NetworkTrainer struct {
@@ -72,5 +73,3 @@ func (nt *NetworkTrainer) Train(n *Network, loader *DataLoader, optimizer *Optim
 	globalRunningLoss /= float64(loader.batchSize)
 	return
 }
-
-

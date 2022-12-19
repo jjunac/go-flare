@@ -3,9 +3,10 @@ package tools
 import (
 	"encoding/json"
 	"net/http"
-	"neural-network/neuralnet"
 	"text/template"
 	"time"
+
+	"github.com/jjunac/goflare/goflare"
 
 	"github.com/sirupsen/logrus"
 )
@@ -13,13 +14,13 @@ import (
 type H map[string]any
 
 type DebugServer struct {
-	nn        *neuralnet.Network
-	trainData []neuralnet.DataPoint
-	testData  []neuralnet.DataPoint
-	epoch int
+	nn        *goflare.Network
+	trainData []goflare.DataPoint
+	testData  []goflare.DataPoint
+	epoch     int
 }
 
-func NewDebugServer(nn *neuralnet.Network, testData []neuralnet.DataPoint, trainLoader neuralnet.DataLoader, optimizer *neuralnet.Optimizer) *DebugServer {
+func NewDebugServer(nn *goflare.Network, testData []goflare.DataPoint, trainLoader goflare.DataLoader, optimizer *goflare.Optimizer) *DebugServer {
 	return &DebugServer{
 		nn:        nn,
 		trainData: testData,
@@ -70,16 +71,16 @@ func (s *DebugServer) handleApiLearn(w http.ResponseWriter, r *http.Request) {
 	s.checkNoErr(w, err)
 
 	logrus.Infof("Running training for %d epochs", query.Epoch)
-	trainer := neuralnet.NetworkTrainer{}
-	loader := neuralnet.NewDataLoader(s.trainData, query.BatchSize, true)
-	optimizer := neuralnet.NewOptimizer(s.nn, neuralnet.MSELoss, query.LearnRate, 0)
+	trainer := goflare.NetworkTrainer{}
+	loader := goflare.NewDataLoader(s.trainData, query.BatchSize, true)
+	optimizer := goflare.NewOptimizer(s.nn, goflare.MSELoss, query.LearnRate, 0)
 	var trainLoss float64
 	for i := 0; i < query.Epoch; i++ {
 		s.epoch++
 		trainLoss = trainer.Train(s.nn, loader, optimizer)
 	}
 
-	testLoss := s.nn.AvgLoss(neuralnet.MSELoss, s.testData)
+	testLoss := s.nn.AvgLoss(goflare.MSELoss, s.testData)
 	logrus.Infof("Test loss: %f", testLoss)
 
 	err = s.replyJSON(w, 200, H{
