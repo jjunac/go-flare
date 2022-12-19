@@ -1,7 +1,6 @@
 package neuralnet
 
 import (
-	"math"
 	"math/rand"
 	"neural-network/utils"
 )
@@ -71,7 +70,8 @@ func (l *Layer) Reset() {
 	for out := range l.Biases {
 		l.Biases[out] = 0
 		for in := range l.Weights {
-			l.Weights[in][out] = (rand.Float64()*2 - 1) / math.Sqrt(float64(l.NodesIn))
+			// l.Weights[in][out] = (rand.Float64()*2 - 1) / math.Sqrt(float64(l.NodesIn))
+			l.Weights[in][out] = rand.Float64()*2 - 1
 		}
 	}
 }

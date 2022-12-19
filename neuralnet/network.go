@@ -4,11 +4,6 @@ import (
 	"neural-network/utils"
 )
 
-type DataPoint struct {
-	Inputs  []float64
-	Outputs []float64
-}
-
 type Network struct {
 	Layers []Layer
 }
@@ -27,9 +22,9 @@ func CopyNetwork(src *Network) Network {
 	}
 }
 
-func (n *Network) AvgLoss(lossFunc LossFunc, data []DataPoint) (loss float64) {
+func (n *Network) AvgLoss(lossFunc LossFunc, data Dataset) (loss float64) {
 	for i := range data {
-		loss += lossFunc.Vectorized(n.Evaluate(data[i].Inputs), data[i].Outputs)
+		loss += utils.Sum(lossFunc.Vectorized(n.Evaluate(data[i].Inputs), data[i].Outputs))
 	}
 	loss /= float64(len(data))
 	return

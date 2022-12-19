@@ -15,4 +15,5 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	gonum.org/v1/gonum v0.12.0
 )

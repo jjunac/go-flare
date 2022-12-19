@@ -1,15 +1,9 @@
 package main
 
 import (
-	"encoding/csv"
 	"flag"
-	"io"
-	"log"
 	"math/rand"
 	"neural-network/neuralnet"
-	_ "neural-network/tools"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -30,55 +24,38 @@ func main() {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
 
-	f, err := os.Open(".datasets/oil_spill.csv")
+	pipeline := neuralnet.NewDataPipeline(50, []int{49})
+	pipeline.AddRowProcessor(neuralnet.PPToFloats())
+	pipeline.AddInputProcessor(neuralnet.PPNormalizer())
+
+	data, err := neuralnet.CSVDataStream(".datasets/oil_spill.csv")
 	check(err)
-	r := csv.NewReader(f)
-
-	dataset := make([]neuralnet.DataPoint, 0, 1000)
-
-	// Skip header
-	_, err = r.Read()
+	err = data.ApplyPipeline(pipeline)
 	check(err)
-	// Read each rows
-	for {
-		row, err := r.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
+	dataset, err := data.ToDataset([]int{49})
+	check(err)
 
-		point := make([]float64, len(row))
-		for i := range point {
-			f, err := strconv.ParseFloat(row[i], 64)
-			check(err)
-			point[i] = f
-		}
-
+	for i := range dataset {
 		output := []float64{0, 0}
-		if point[49] < 0.5 {
+		if dataset[i].Outputs[0] < 0.5 {
 			output[0] = 1
 		} else {
 			output[1] = 1
 		}
-
-		dataset = append(dataset, neuralnet.DataPoint{
-			Inputs:  point[:49],
-			Outputs: output,
-		})
+		dataset[i].Outputs = output
 	}
 
 	rand.Seed(time.Now().UnixNano())
 	network := neuralnet.NewNetwork(
 		[]neuralnet.Layer{
-			neuralnet.NewLayer(49, 2, neuralnet.Sigmoid),
+			neuralnet.NewLayer(49, 25, neuralnet.ReLU),
+			neuralnet.NewLayer(25, 2, neuralnet.Sigmoid),
 		},
 	)
 
 	trainData, testData := neuralnet.RandomSplit2(dataset, 7, 3)
 
-	testNetwork := func(data []neuralnet.DataPoint) {
+	testNetwork := func(name string, data neuralnet.Dataset) {
 		total := len(data)
 		actual := make([][]float64, total)
 		predictions := make([][]float64, total)
@@ -88,24 +65,31 @@ func main() {
 			predictions[i] = network.Evaluate(data[i].Inputs)
 		}
 
+		logrus.Infof("%s data loss = %f\n", name, network.AvgLoss(neuralnet.MSELoss, data))
 		logrus.Infoln(neuralnet.NewConfusionMatrix([]string{"class0", "class1"}, actual, predictions))
+		logrus.Infoln(network.Evaluate(data[0].Inputs), data[0].Outputs)
 	}
 
-	testNetwork(trainData)
-	optimizer := neuralnet.NewOptimizer(&network, neuralnet.MSELoss, 0.1, 0)
+	// testNetwork(trainData)
+	optimizer := neuralnet.NewOptimizer(&network, neuralnet.MSELoss, 0.001, 0)
 
-	// debugSvr := tools.NewDebugServer(&network, testData, *neuralnet.NewDataLoader(trainData, 100, true), optimizer)
-	// debugSvr.Run("localhost:5000")
+	trainer := neuralnet.NetworkTrainer{NbWorkers: 6}
+	loader := *neuralnet.NewDataLoader(trainData, len(trainData), true)
+	lastLog := time.Now()
+	lastEpochLog := 0
 
-	trainer := neuralnet.NetworkTrainer{}
-	loader := *neuralnet.NewDataLoader(trainData, 100, true)
+	// tools.NewDebugServer(&network, testData, loader, optimizer).Run("localhost:5000")
+
 	for i := 0; i < 100000000; i++ {
 		runningLoss := trainer.Train(&network, &loader, optimizer)
 		// network.Learn(, optimizer)
-		if i%500 == 0 {
-			logrus.Infof("[%4d] Train data loss = %f\n", i, runningLoss)
-			testNetwork(trainData)
-			testNetwork(testData)
+		if i%10 == 0 && (time.Since(lastLog) > 2 * time.Second) {
+			logrus.Infof("#################### Epoch %d [%.1f epoch/s] ####################", i, 1000 * float64(i - lastEpochLog) / float64(time.Since(lastLog).Milliseconds()))
+			lastLog = time.Now()
+			lastEpochLog = i
+			logrus.Infof("Train data loss = %f\n", runningLoss)
+			testNetwork("Train", trainData)
+			testNetwork("Test", testData)
 		}
 	}
 

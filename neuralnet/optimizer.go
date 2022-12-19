@@ -107,8 +107,6 @@ func (w *OptimizerWorker) Backpropagate(nld *NetworkLearnData) {
 			lld.LossDerivative[i] *= l.Activation.FPrime(lld.WeightedValues[i])
 		}
 
-		// REMOVE
-		// lld.LossDerivative[1] *= 10000000
 		logrus.Debugf("Actual   : %+v", nld.Actual)
 		logrus.Debugf("Predicted: %+v", nld.Predicted)
 		logrus.Debugf("Loss'    : %+v", lld.LossDerivative)

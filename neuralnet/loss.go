@@ -8,11 +8,20 @@ type LossFunc struct {
 	FPrime func(predicted float64, actual float64) float64
 }
 
-func (lf *LossFunc) Vectorized(predicted []float64, actual []float64) (loss float64) {
-	for i := range predicted {
-		loss += lf.F(predicted[i], actual[i])
+func (lf *LossFunc) Vectorized(predicted []float64, actual []float64) []float64 {
+	res := make([]float64, len(predicted))
+	for i := range res {
+		res[i] = lf.F(predicted[i], actual[i])
 	}
-	return
+	return res
+}
+
+func (lf *LossFunc) PrimeVectorized(predicted []float64, actual []float64) []float64 {
+	res := make([]float64, len(predicted))
+	for i := range res {
+		res[i] = lf.FPrime(predicted[i], actual[i])
+	}
+	return res
 }
 
 func (f *LossFunc) MarshalJSON() ([]byte, error) {

@@ -1,9 +1,118 @@
 package neuralnet
 
 import (
+	"fmt"
 	"math/rand"
+	"neural-network/utils"
 	"time"
 )
+
+type Dataset []DataPoint
+
+type DataPoint struct {
+	Inputs  []float64
+	Outputs []float64
+}
+
+type DataStream struct {
+	data [][]any
+}
+
+func NewDataStream(capacity int) *DataStream {
+	return &DataStream{
+		make([][]any, 0, capacity),
+	}
+}
+
+func (ds *DataStream) ApplyPipeline(pipeline *DataPipeline) error {
+	return pipeline.Apply(ds.data)
+}
+
+// TODO: Find something better to differentiate inputs and targets
+func (ds *DataStream) ToDataset(targetCols []int) (dataset Dataset, err error) {
+	dataset = make(Dataset, len(ds.data))
+
+	var inputCols []int
+	if len(ds.data) > 0 {
+		targets := utils.NewSetFromSlice(targetCols)
+		inputCols = make([]int, 0, len(ds.data[0]) - len(targets))
+		for i := range ds.data[0] {
+			if !targets.Contains(i) {
+				inputCols = append(inputCols, i)
+			}
+		}
+	}
+
+	for row, d := range ds.data {
+		columnsToFloat64Slice := func(cols []int) (values []float64, err error) {
+			values = make([]float64, len(cols))
+			for i, col := range cols {
+				if f, ok := d[col].(float64); ok {
+					values[i] = f
+				} else {
+					err = fmt.Errorf("value at row %d, col %d is not a float", row, col)
+					return
+				}
+			}
+			return
+		}
+		dataset[row].Inputs, err = columnsToFloat64Slice(inputCols)
+		if err != nil {
+			return
+		}
+		dataset[row].Outputs, err = columnsToFloat64Slice(targetCols)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+type DataLoader struct {
+	dataset   Dataset
+	batchSize int
+	shuffle   bool
+}
+
+func NewDataLoader(dataset Dataset, batchSize int, shuffle bool) *DataLoader {
+	dl := &DataLoader{
+		dataset,
+		batchSize,
+		shuffle,
+	}
+	return dl
+}
+
+func (dl *DataLoader) Len() int {
+	return len(dl.dataset)
+}
+
+func (dl *DataLoader) Batches() []Dataset {
+	dataset := dl.dataset
+	if dl.shuffle {
+		dataset = make(Dataset, len(dl.dataset))
+		copy(dataset, dl.dataset)
+		rand.Shuffle(len(dataset), func(i, j int) {
+			tmp := dataset[i]
+			dataset[i] = dataset[j]
+			dataset[j] = tmp
+		})
+	}
+
+	batches := make([]Dataset, 0, (len(dataset)+dl.batchSize-1)/dl.batchSize)
+	lowerBound := 0
+	end := false
+	for !end {
+		upperBound := lowerBound + dl.batchSize
+		if upperBound > len(dataset) {
+			upperBound = len(dataset)
+			end = true
+		}
+		batches = append(batches, dataset[lowerBound:upperBound])
+		lowerBound = upperBound
+	}
+	return batches
+}
 
 // Little shortcut for RandomSplit with 2 datasets
 func RandomSplit2[T any](dataset []T, proportions ...float64) ([]T, []T) {
@@ -47,50 +156,3 @@ func RandomSplitWithSource[T any](dataset []T, proportions []float64, rng *rand.
 	}
 	return datasets
 }
-
-type DataLoader struct {
-	dataset   []DataPoint
-	batchSize int
-	shuffle   bool
-}
-
-func NewDataLoader(dataset []DataPoint, batchSize int, shuffle bool) *DataLoader {
-	dl := &DataLoader{
-		dataset,
-		batchSize,
-		shuffle,
-	}
-	return dl
-}
-
-func (dl *DataLoader) Len() int {
-	return len(dl.dataset)
-}
-
-func (dl *DataLoader) Batches() [][]DataPoint {
-	dataset := dl.dataset
-	if dl.shuffle {
-		dataset = make([]DataPoint, len(dl.dataset))
-		copy(dataset, dl.dataset)
-		rand.Shuffle(len(dataset), func(i, j int) {
-			tmp := dataset[i]
-			dataset[i] = dataset[j]
-			dataset[j] = tmp
-		})
-	}
-
-	batches := make([][]DataPoint, 0, (len(dataset)+dl.batchSize-1)/dl.batchSize)
-	lowerBound := 0
-	end := false
-	for !end {
-		upperBound := lowerBound + dl.batchSize
-		if upperBound > len(dataset) {
-			upperBound = len(dataset)
-			end = true
-		}
-		batches = append(batches, dataset[lowerBound:upperBound])
-		lowerBound = upperBound
-	}
-	return batches
-}
-

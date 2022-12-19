@@ -1,6 +1,7 @@
 package neuralnet
 
 import (
+	"neural-network/utils"
 	"runtime"
 	"sync"
 )
@@ -42,7 +43,7 @@ func (nt *NetworkTrainer) Train(n *Network, loader *DataLoader, optimizer *Optim
 
 					// --- Evaluation
 					outputs := n.EvaluateWithLearnData(data.Inputs, &nld)
-					res.runningLoss += optimizer.loss.Vectorized(outputs, data.Outputs)
+					res.runningLoss += utils.Sum(optimizer.loss.Vectorized(outputs, data.Outputs))
 
 					// --- Back-propagation
 					nld.Predicted = outputs
